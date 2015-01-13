@@ -1,100 +1,121 @@
-print "imported lisp_interpreter"
-
 import sys
 import re
-from lisp_verify import *
 
-vars = {"var1": "hello"}
-lambdas = {}
-verbose = False
-
-def interpret(f, verb = True):
-    #global verbose
-    #verbose = verb
+class Interpreter():
+    variables = {}
+    verbose = False
+    validations = {}
+    functions = {}
     
-    #read line by line
-    line_count = 0
-    for line in f:
-        line_count += 1
-        if verbose: print str(line_count)+":", line.strip()
-        result = eval(line, line_count)
-        if not result==None:
+    def __init__(self, functions_dict, validations_dict, verb = False):
+        self.verbose = verb
+        self.functions = functions_dict
+        self.validations = validations_dict
+        
+    def is_symbol(self, elem):
+        if not isinstance(elem, list):
+            if not elem in self.variables:
+                if not elem in self.functions:
+                    return True
+        else:
+            if elem[0][0]=="'":
+                return True
+        return False
+    
+    def verify_line_syntax(self, l):
+        return True
+    
+    def verify_file_syntax(self, f):
+        return True
+    
+    def eval_line(self, l):
+        self.verify_line_syntax(l)
+        line_parsed = self.parse_line(l)
+        result = self.eval(line_parsed, 0)
+        if not result == None:
             print result
 
-def eval(input, counter):
+    def interpret(self, f):
+        #read line by line, keeping track of line number
+        #we assume file syntax is verified
+        line_count = 0
+        for line in f:
+            line_count += 1
+            line_parsed = self.parse_line(line)
+            if verbose: print str(line_count)+":", line_parsed
+            result = self.eval(line_parsed, line_count)
+            if not result==None:
+                print result
     
-    #Find the elements in the str
-    text = input.strip()
-    if "#" in text: #remove comments
-        text = text[0:text.index("#")]
-        text = text.strip()
-    if text == "": return
-    if text[0]=="(":
-        text = text[1:len(text)-1]
-    if verbose: print text
+    def parse_line(self, line):
+        #Find the elements in the str
+        elements = [[]]
+        
+        text = line.strip()
+        if text == "":
+            return []
+        
+        quoting = False
+        block = 0
+        item = ""
+        for i in re.split("([\s()'])", text):
+            #YOU NEED TO CLEAN THIS UP
+            if quoting == True:
+                if (i == " " or i == ")") and block == 0:
+                    last = elements.pop()
+                    elements[-1].append(last)
+                    quoting = False
+                elif i == '' or i == ' ':
+                    continue
+                elif i == "(":
+                    elements.append([])
+                    block += 1
+                elif i == ")":
+                    last = elements.pop()
+                    elements[-1].append(last)
+                    block -= 1
+                else:
+                    elements[-1].append(i)
+            if quoting == False:
+                if i == '' or i == " ":
+                    continue
+                elif (i=="'"):
+                    quoting = True
+                    elements.append([])
+                    elements[-1].append(i)
+                elif i == "(":
+                    elements.append([])
+                elif i == ")":
+                    last = elements.pop()
+                    elements[-1].append(last)
+                elif i[0] == "#":
+                    break
+                else:
+                    elements[-1].append(i)
+        return elements[0]
 
-    elements = []
-    nesting = False
-    temp_elem = ""
-    for i in text:
-        if i == " ":
-            if not nesting:
-                elements.append(temp_elem)
-                temp_elem = ""
-                continue
-        if i == "(":
-            nesting = True
-        if i == ")":
-            nesting = False
-        if i == "#":
-            break
-        temp_elem = temp_elem + i
-    if temp_elem: elements.append(temp_elem) #add trailing pieces
-    if verbose: print elements
-
-    #Now that we have elements, process them
-    if len(elements)==1:
-        if elements[0][0]=="(":
-            elements[0] = eval(elements[0][1:len(elements[0])-1], counter)
+    def eval(self, elements, counter):
+        if elements==[]: return None
+        
+        #evaluating all static non-list items
+        if not isinstance(elements, list):
+            if elements in self.variables:
+                return self.eval(self.variables[elements], counter)
+            if self.is_symbol(elements):
+                return elements
         else:
-            if elements[0][0] == "'":
-                return elements[1:]
+            #evaluate all list elements
+            for i in xrange(len(elements)):
+                elements[i] = self.eval(elements[i], counter)
+            
+            #evaluate lists as functions now
+            if elements[0] not in self.functions:
+                print "Undefined function in line", str(counter) + ":", elements[0]
+                return None
             else:
-                if elements[0] in vars.keys():
-                    return vars[elements[0]]
-                return elements[0] #NEEDS TO BE FIXED HERE - what about uninitiated varibles?
-    else:
-        return process(elements, counter)
-
-def process(li, counter):
-    op = li[0]
-    
-    for i in xrange(len(li)):
-        li[i] = str(eval(li[i], counter))
-
-    if op=='+':
-        validate(op, li, counter)
-        if "." in li[1] or "." in li[2]:
-            return float(li[1])+float(li[2])
-        else:
-            return int(li[1])+int(li[2])
-    elif op=='-':
-        validate(op, li, counter)
-        if "." in li[1] or "." in li[2]:
-            return float(li[1])-float(li[2])
-        else:
-            return int(li[1])-int(li[2])
-
-    return li
-
-def validate(op, li, counter):
-
-    if op=='+':
-        if len(li)<=3:
-            if li[1][0]=="(" or re.match("^[+-]?\d(>?\.\d+)?$", li[1]):
-                if li[2][0]=="(" or re.match("^[+-]?\d(>?\.\d+)?$", li[2]):
-                    return
-        print "There is an error in line", counter
-        sys.exit()
-
-    return
+                params = elements[1:]
+                if self.validations[elements[0]] (params):
+                    self.functions[elements[0]] (params)
+            
+            
+                
