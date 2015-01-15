@@ -13,9 +13,9 @@ if __name__ == "__main__":
     if len(sys.argv)==1:
         print "Python Lisp Interpreter: usage 'python lisp.py [filename]'"
         
-        interpreter = lisp_interpret.Interpreter({}, {})
-        result = interpreter.parse_line("(+ 1 '(- 1 2))")
-        print result
+        interpreter = lisp_interpret.Interpreter(lisp_functions.FUNCTIONS, lisp_verifications.VERIFICATIONS)
+        
+        result = None
         
         unittest.main()
     else:
@@ -35,6 +35,7 @@ if __name__ == "__main__":
                     print "Error:", ver[1]
                 else:
                     if verbose: "File has no syntax errors"
-                    interpreter.interpret(thefile)
+                    for result in interpreter.interpret(thefile):
+                        print result
         else:
             print"File doesn't exist or Invalid file path"
