@@ -3,303 +3,328 @@ import lisp_interpret
 import lisp_verifications
 import lisp_functions
 
+def test_suite():
+    suite = unittest.TestSuite()
+    suite.addTest(unittest.makeSuite(ParseTest))
+    suite.addTest(unittest.makeSuite(FunctionsVerificationsTest))
+    suite.addTest(unittest.makeSuite(IsStaticTest))
+    suite.addTest(unittest.makeSuite(VerifyLineTest))
+    suite.addTest(unittest.makeSuite(EvalTest))
+    return suite
+
 class ParseTest(unittest.TestCase):
     
-    def test1_parse_line(self):
-        interpreter = lisp_interpret.Interpreter({}, {})
-        
+    def setUp(self):
+        self.interpreter = lisp_interpret.Interpreter({}, {})
+    
+    def test_parse_line(self):
         #default answer: []
-        result = interpreter.parse_line("")
+        result = self.interpreter.parse_line("")
         self.assertEquals([], result)
         
         #base case: symbol
-        result = interpreter.parse_line('a')
+        result = self.interpreter.parse_line('a')
         self.assertEquals(['a'], result)
         
         #some symbols in brackets
-        result = interpreter.parse_line('(1 1 1)')
+        result = self.interpreter.parse_line('(1 1 1)')
         self.assertEquals([['1', '1', '1']], result)
         
         #some nesting
-        result = interpreter.parse_line('(+ 1 (- 1 2))')
+        result = self.interpreter.parse_line('(+ 1 (- 1 2))')
         self.assertEquals([['+', '1', ['-', '1', '2']]], result)
         
         #comments
-        result = interpreter.parse_line('(1 1 1) #hello there \'(1 2)')
+        result = self.interpreter.parse_line('(1 1 1) #hello there \'(1 2)')
         self.assertEquals([['1', '1', '1']], result)
-        result = interpreter.parse_line('#this should result empty')
+        result = self.interpreter.parse_line('#this should result empty')
         self.assertEquals([], result)
         
         #using apostrophes
-        result = interpreter.parse_line("'a")
+        result = self.interpreter.parse_line("'a")
         self.assertEquals([["'", "a"]], result)
-        result = interpreter.parse_line("'(1 1)")
+        result = self.interpreter.parse_line("'whole")
+        self.assertEquals([["'", "whole"]], result)
+        result = self.interpreter.parse_line("'(1 1)")
         self.assertEquals([["'", ["1", "1"]]], result)
-        result = interpreter.parse_line("(def a 'something)")
+        result = self.interpreter.parse_line("(def a 'something)")
         self.assertEquals([['def', 'a', ["'", 'something']]], result)
-        result = interpreter.parse_line("(def a '(1 2))")
+        result = self.interpreter.parse_line("(def a '(1 2))")
         self.assertEquals([['def', 'a', ["'", ['1', '2']]]], result)
+    
+    def tearDown(self):
+        del self.interpreter
 
-    def test2_functions_verifications(self):
-        func = lisp_functions.FUNCTIONS
-        veri = lisp_verifications.VERIFICATIONS
+class FunctionsVerificationsTest(unittest.TestCase):
+    
+    def setUp(self):
+        self.func = lisp_functions.FUNCTIONS
+        self.veri = lisp_verifications.VERIFICATIONS
         
+    def test_basic_functions(self):
         #'+', "-", "*"
         items = ["+", "-", "*"]
         solutions = [3, -1, 2]
         for i in xrange(len(items)):
-            self.assertTrue(veri[items[i]](['1', '-1']))
-            self.assertTrue(veri[items[i]](['1', '1.0']))
-            self.assertTrue(veri[items[i]](['1.00', '-1.0']))
-            self.assertFalse(veri[items[i]](['1']))
-            self.assertFalse(veri[items[i]](['1', '1', '1']))
-            self.assertFalse(veri[items[i]](['-1.0', '7a']))
+            self.assertTrue(self.veri[items[i]](['1', '-1']))
+            self.assertTrue(self.veri[items[i]](['1', '1.0']))
+            self.assertTrue(self.veri[items[i]](['1.00', '-1.0']))
+            self.assertFalse(self.veri[items[i]](['1']))
+            self.assertFalse(self.veri[items[i]](['1', '1', '1']))
+            self.assertFalse(self.veri[items[i]](['-1.0', '7a']))
             
-            result = func[items[i]](['1', '2'])
+            result = self.func[items[i]](['1', '2'])
             self.assertEquals(solutions[i], result)
             self.assertIsInstance(result, int)
-            result = func[items[i]](['1', '2.0'])
+            result = self.func[items[i]](['1', '2.0'])
             self.assertEquals(solutions[i], result)
             self.assertIsInstance(result, float)
-            result = func[items[i]](['1.0', '2.0'])
+            result = self.func[items[i]](['1.0', '2.0'])
             self.assertEquals(solutions[i], result)
             self.assertIsInstance(result, float)
         
         #"/" = different because result is always float
-        self.assertTrue(veri['/'](['1', '-1']))
-        self.assertTrue(veri['/'](['1', '1.0']))
-        self.assertTrue(veri['/'](['1.00', '-1.0']))
-        self.assertFalse(veri['/'](['1']))
-        self.assertFalse(veri['/'](['1', '1', '1']))
-        self.assertFalse(veri['/'](['-1.0', '7a']))
+        self.assertTrue(self.veri['/'](['1', '-1']))
+        self.assertTrue(self.veri['/'](['1', '1.0']))
+        self.assertTrue(self.veri['/'](['1.00', '-1.0']))
+        self.assertFalse(self.veri['/'](['1']))
+        self.assertFalse(self.veri['/'](['1', '1', '1']))
+        self.assertFalse(self.veri['/'](['-1.0', '7a']))
             
-        result = func['/'](['1', '2'])
+        result = self.func['/'](['1', '2'])
         self.assertEquals(0.5, result)
         self.assertIsInstance(result, float)
-        result = func['/'](['1', '2.0'])
+        result = self.func['/'](['1', '2.0'])
         self.assertEquals(0.5, result)
         self.assertIsInstance(result, float)
-        result = func['/'](['1.0', '2.0'])
+        result = self.func['/'](['1.0', '2.0'])
         self.assertEquals(0.5, result)
         self.assertIsInstance(result, float)
-        
+    
+    def test_eq_functions(self):
         #"eq?" - OMG thats a lot
-        self.assertTrue(veri['eq?'](['1', 'a']))
-        self.assertTrue(veri['eq?'](['1', '1.0']))
-        self.assertTrue(veri['eq?'](['1.00', ['a']]))
-        self.assertFalse(veri['eq?'](['1']))
-        self.assertFalse(veri['eq?'](['1', '1', '1']))
+        self.assertTrue(self.veri['eq?'](['1', 'a']))
+        self.assertTrue(self.veri['eq?'](['1', '1.0']))
+        self.assertTrue(self.veri['eq?'](['1.00', ['a']]))
+        self.assertFalse(self.veri['eq?'](['1']))
+        self.assertFalse(self.veri['eq?'](['1', '1', '1']))
         
-        result = func['eq?'](['1', '1'])
+        result = self.func['eq?'](['1', '1'])
         self.assertEquals(result, "True")
-        result = func['eq?'](['1', '1.0'])
+        result = self.func['eq?'](['1', '1.0'])
         self.assertEquals(result, "True")
-        result = func['eq?'](['1.0', '2.0'])
+        result = self.func['eq?'](['1.0', '2.0'])
         self.assertEquals(result, "False")
-        result = func['eq?'](['1.0', 'a'])
+        result = self.func['eq?'](['1.0', 'a'])
         self.assertEquals(result, "False")
-        result = func['eq?'](['1.0', ['a', '1']])
+        result = self.func['eq?'](['1.0', ['a', '1']])
         self.assertEquals(result, "False")
-        result = func["eq?"](['a', 'a'])
+        result = self.func["eq?"](['a', 'a'])
         self.assertEquals(result, "True")
-        result = func["eq?"](['a', ["'", 'a']])
+        result = self.func["eq?"](['a', ["'", 'a']])
         self.assertEquals(result, "True")
-        result = func["eq?"](['a', ["'", 'b']])
+        result = self.func["eq?"](['a', ["'", 'b']])
         self.assertEquals(result, "False")
-        result = func["eq?"]([["1", "1"], ["1", "1"]])
+        result = self.func["eq?"]([["1", "1"], ["1", "1"]])
         self.assertEquals(result, "True")
-        result = func["eq?"]([["1", "1"], ["1.0", "1.0"]])
+        result = self.func["eq?"]([["1", "1"], ["1.0", "1.0"]])
         self.assertEquals(result, "True")
-        result = func["eq?"]([["1", "1"], ["1", "2"]])
+        result = self.func["eq?"]([["1", "1"], ["1", "2"]])
         self.assertEquals(result, "False")
-        result = func["eq?"]([["1", "1"], ["'", ["1", "1"]]])
+        result = self.func["eq?"]([["1", "1"], ["'", ["1", "1"]]])
         self.assertEquals(result, "True")
-        
+    
+    def test_quote_function(self):
         #quote
-        self.assertTrue(veri['quote'](['1']))
-        self.assertTrue(veri['quote'](['a']))
-        self.assertTrue(veri['quote']([['-1.00', 'a']]))
-        self.assertFalse(veri['quote'](['1', '1']))
-        self.assertFalse(veri['quote'](['1', '1', '1']))
-        self.assertFalse(veri['quote']([['-1.0'], ['7a']]))
+        self.assertTrue(self.veri['quote'](['1']))
+        self.assertTrue(self.veri['quote'](['a']))
+        self.assertTrue(self.veri['quote']([['-1.00', 'a']]))
+        self.assertFalse(self.veri['quote'](['1', '1']))
+        self.assertFalse(self.veri['quote'](['1', '1', '1']))
+        self.assertFalse(self.veri['quote']([['-1.0'], ['7a']]))
             
-        result = func['quote'](['1'])
+        result = self.func['quote'](['1'])
         self.assertEquals(result, ["'", '1'])
         self.assertIsInstance(result, list)
-        result = func['quote']([['1', '2.0']])
+        result = self.func['quote']([['1', '2.0']])
         self.assertEquals(result, ["'", ['1', '2.0']])
-        result = func['quote']([["'", 'a']])
+        result = self.func['quote']([["'", 'a']])
         self.assertEquals(result, ["'", 'a'])
-        result = func['quote']([["'", ['1', '2.0']]])
+        result = self.func['quote']([["'", ['1', '2.0']]])
         self.assertEquals(result, ["'", ['1', '2.0']])
         
-        #quote
-        self.assertTrue(veri['quote'](['1']))
-        self.assertTrue(veri['quote'](['a']))
-        self.assertTrue(veri['quote']([['-1.00', 'a']]))
-        self.assertFalse(veri['quote'](['1', '1']))
-        self.assertFalse(veri['quote'](['1', '1', '1']))
-        self.assertFalse(veri['quote']([['-1.0'], ['7a']]))
-            
-        result = func['quote'](['1'])
-        self.assertEquals(result, ["'", '1'])
-        self.assertIsInstance(result, list)
-        result = func['quote']([['1', '2.0']])
-        self.assertEquals(result, ["'", ['1', '2.0']])
-        result = func['quote']([["'", 'a']])
-        self.assertEquals(result, ["'", 'a'])
-        result = func['quote']([["'", ['1', '2.0']]])
-        self.assertEquals(result, ["'", ['1', '2.0']])
+    def tearDown(self):
+        del self.func
+        del self.veri
 
-    def test3_is_static_symbol(self):
-        interpreter = lisp_interpret.Interpreter(lisp_functions.FUNCTIONS, lisp_verifications.VERIFICATIONS)
-        
+class IsStaticTest(unittest.TestCase):
+    
+    def setUp(self):
+        self.interpreter = lisp_interpret.Interpreter(lisp_functions.FUNCTIONS, lisp_verifications.VERIFICATIONS)
+    
+    def test_is_static_symbol(self):
         #numbers are
-        parsed_text = interpreter.parse_line('1')
-        self.assertFalse(interpreter.is_static_symbol(parsed_text))
-        self.assertTrue(interpreter.is_static_symbol(parsed_text[0]))
+        parsed_text = self.interpreter.parse_line('1')
+        self.assertFalse(self.interpreter.is_static_symbol(parsed_text))
+        self.assertTrue(self.interpreter.is_static_symbol(parsed_text[0]))
         
         #any defined function is
         for key in lisp_functions.FUNCTIONS:
-            parsed_text = interpreter.parse_line(key)
-            self.assertTrue(interpreter.is_static_symbol(parsed_text[0]))
+            parsed_text = self.interpreter.parse_line(key)
+            self.assertTrue(self.interpreter.is_static_symbol(parsed_text[0]))
         
         #any apostrophe-d item is
-        parsed_text = interpreter.parse_line("'a")
-        self.assertTrue(interpreter.is_static_symbol(parsed_text[0]))
-        parsed_text = interpreter.parse_line("'(1 2)")
-        self.assertTrue(interpreter.is_static_symbol(parsed_text[0]))
+        parsed_text = self.interpreter.parse_line("'a")
+        self.assertTrue(self.interpreter.is_static_symbol(parsed_text[0]))
+        parsed_text = self.interpreter.parse_line("'(1 2)")
+        self.assertTrue(self.interpreter.is_static_symbol(parsed_text[0]))
         
         #others arent
-        parsed_text = interpreter.parse_line('(1 2)')
-        self.assertFalse(interpreter.is_static_symbol(parsed_text[0]))
-        self.assertTrue(interpreter.is_static_symbol(parsed_text[0][0]))
-        self.assertTrue(interpreter.is_static_symbol(parsed_text[0][1]))
+        parsed_text = self.interpreter.parse_line('(1 2)')
+        self.assertFalse(self.interpreter.is_static_symbol(parsed_text[0]))
+        self.assertTrue(self.interpreter.is_static_symbol(parsed_text[0][0]))
+        self.assertTrue(self.interpreter.is_static_symbol(parsed_text[0][1]))
+    
+    def tearDown(self):
+        del self.interpreter
 
-    def test4_verify_line(self):
-        interpreter = lisp_interpret.Interpreter(lisp_functions.FUNCTIONS, lisp_verifications.VERIFICATIONS)
+class VerifyLineTest(unittest.TestCase):
+    def setUp(self):
+        self.interpreter = lisp_interpret.Interpreter(lisp_functions.FUNCTIONS, lisp_verifications.VERIFICATIONS)
         
+    def test_verify_defaults(self):
         #defaults
-        result = interpreter.verify_line_syntax("", 0) #default syntax ok
+        result = self.interpreter.verify_line_syntax("", 0) #default syntax ok
         self.assertIsInstance(result, tuple)
         self.assertTrue(result[0])
         self.assertEquals(result[1], "")
-        
+    
+    def test_verify_parens(self):
         #parens
-        result = interpreter.verify_line_syntax(")", 0) #any extra parens
+        result = self.interpreter.verify_line_syntax(")", 0) #any extra parens
         self.assertFalse(result[0])
         self.assertEquals(result[1], "')' seen before opening bracket '(': 0")
-        result = interpreter.verify_line_syntax("(", 0)
+        result = self.interpreter.verify_line_syntax("(", 0)
         self.assertFalse(result[0])
         self.assertEquals(result[1], "Mismatched bracket in line: 0")
-        result = interpreter.verify_line_syntax(")(", 0)
+        result = self.interpreter.verify_line_syntax(")(", 0)
         self.assertFalse(result[0])
         self.assertEquals(result[1], "')' seen before opening bracket '(': 0")
-        result = interpreter.verify_line_syntax("(1 0))", 0) #finds issues if brackets are miscounted
+        result = self.interpreter.verify_line_syntax("(1 0))", 0) #finds issues if brackets are miscounted
         self.assertFalse(result[0])
         self.assertEquals(result[1], "')' seen before opening bracket '(': 0")
-        result = interpreter.verify_line_syntax("(1 (0) (0 1)", 0)
+        result = self.interpreter.verify_line_syntax("(1 (0) (0 1)", 0)
         self.assertFalse(result[0])
         self.assertEquals(result[1], "Mismatched bracket in line: 0")
-        result = interpreter.verify_line_syntax("(1 1) (1 0)", 0)
+        result = self.interpreter.verify_line_syntax("(1 1) (1 0)", 0)
         self.assertFalse(result[0])
         self.assertEquals(result[1], "Cannot have two lists in one line: 0")
-        
+    
+    def test_verify_trailing_spaces(self):
         #trailing spaces (should be trimmed
-        result = interpreter.verify_line_syntax(" 1  ", 0)
+        result = self.interpreter.verify_line_syntax(" 1  ", 0)
         self.assertTrue(result[0])
-        result = interpreter.verify_line_syntax(" '(1 1)  ", 0)
+        result = self.interpreter.verify_line_syntax(" '(1 1)  ", 0)
         self.assertTrue(result[0])
-        result = interpreter.verify_line_syntax("   ) ", 0)
+        result = self.interpreter.verify_line_syntax("   ) ", 0)
         self.assertFalse(result[0])
         self.assertEquals(result[1], "')' seen before opening bracket '(': 0")
-        
+    
+    def test_verify_outside_parens(self):
         #value outside parens
-        result = interpreter.verify_line_syntax("(+ 1 1) 1", 0) # no character should be out of brackets
+        result = self.interpreter.verify_line_syntax("(+ 1 1) 1", 0) # no character should be out of brackets
         self.assertFalse(result[0])
         self.assertEquals(result[1], "Invalid entry outside of parentheses in line: 0")
-        result = interpreter.verify_line_syntax("1 (+ 1 1)", 0)
+        result = self.interpreter.verify_line_syntax("1 (+ 1 1)", 0)
         self.assertFalse(result[0])
         self.assertEquals(result[1], "Invalid entry outside of parentheses in line: 0")
-        result = interpreter.verify_line_syntax("'(1 1)", 0) #only value in front of parens is "'"
+        result = self.interpreter.verify_line_syntax("'(1 1)", 0) #only value in front of parens is "'"
         self.assertTrue(result[0])
-        
+    
         #lists outside parens
-        result = interpreter.verify_line_syntax("+ 1 1", 0) # all lists should be in brackets
+        result = self.interpreter.verify_line_syntax("+ 1 1", 0) # all lists should be in brackets
         self.assertFalse(result[0])
         self.assertEquals(result[1], "You must have lists in parentheses, in line: 0")
-        
+    
+    def test_verify_apostrophe(self):
         #apostrophes formats
-        result = interpreter.verify_line_syntax("(1 'a)", 0)
+        result = self.interpreter.verify_line_syntax("(1 'a)", 0)
         self.assertTrue(result[0])
-        result = interpreter.verify_line_syntax("'(1 1)", 0)
+        result = self.interpreter.verify_line_syntax("'(1 1)", 0)
         self.assertTrue(result[0])
-        result = interpreter.verify_line_syntax("(0 '(1 1))", 0)
+        result = self.interpreter.verify_line_syntax("(0 '(1 1))", 0)
         self.assertTrue(result[0])
-        result = interpreter.verify_line_syntax("('0 1)", 0)
+        result = self.interpreter.verify_line_syntax("('0 1)", 0)
         self.assertTrue(result[0])
-        result = interpreter.verify_line_syntax("'0", 0)
+        result = self.interpreter.verify_line_syntax("'0", 0)
         self.assertTrue(result[0])
-        result = interpreter.verify_line_syntax("(0 ')", 0)
+        result = self.interpreter.verify_line_syntax("(0 ')", 0)
         self.assertFalse(result[0])
         self.assertEquals(result[1], "There must be a symbol or list after apostrophe: 0")
-        result = interpreter.verify_line_syntax("'", 0)
+        result = self.interpreter.verify_line_syntax("'", 0)
         self.assertFalse(result[0])
         self.assertEquals(result[1], "There must be a symbol or list after apostrophe: 0")
-        result = interpreter.verify_line_syntax("'(0 ' 0)", 0)
+        result = self.interpreter.verify_line_syntax("'(0 ' 0)", 0)
         self.assertFalse(result[0])
         self.assertEquals(result[1], "There must be a symbol or list after apostrophe: 0")
-        result = interpreter.verify_line_syntax("''", 0)
+        result = self.interpreter.verify_line_syntax("''", 0)
         self.assertFalse(result[0])
         self.assertEquals(result[1], "There must be a symbol or list after apostrophe: 0")
-        
+    
+    def test_verify_comments(self):
         #comments
-        result = interpreter.verify_line_syntax("#( 1 1#blah", 0)
+        result = self.interpreter.verify_line_syntax("#( 1 1#blah", 0)
         self.assertTrue(result[0])
-        result = interpreter.verify_line_syntax("'(1 1) #blah", 0)
+        result = self.interpreter.verify_line_syntax("'(1 1) #blah", 0)
         self.assertTrue(result[0])
-        result = interpreter.verify_line_syntax("(1 1) #blah 'should be ok", 0)
+        result = self.interpreter.verify_line_syntax("(1 1) #blah 'should be ok", 0)
         self.assertTrue(result[0])
-        result = interpreter.verify_line_syntax("(1 1 #) not ok", 0)
+        result = self.interpreter.verify_line_syntax("(1 1 #) not ok", 0)
         self.assertFalse(result[0])
         self.assertEquals(result[1], "Mismatched bracket in line: 0")
         
+    def tearDown(self):
+        del self.interpreter
+
+class EvalTest(unittest.TestCase):
+    def setUp(self):
+        self.interpreter = lisp_interpret.Interpreter(lisp_functions.FUNCTIONS, lisp_verifications.VERIFICATIONS)
         
-    def test5_eval(self):
-        interpreter = lisp_interpret.Interpreter(lisp_functions.FUNCTIONS, lisp_verifications.VERIFICATIONS)
-        
+    def test_eval(self):
         #default answer: None
-        result = interpreter.eval_line("")
+        result = self.interpreter.eval_line("", 0)
         self.assertEquals(None, result)
         
         #base case: symbol
-        result = interpreter.eval_line('1')
+        result = self.interpreter.eval_line('1', 1)
         self.assertEquals('1', result)
-        result = interpreter.eval_line("'(1 1)")
+        result = self.interpreter.eval_line("'(1 1)", 2)
         self.assertEquals("'(1 1)", result)
         
         #some processing in brackets
-        result = interpreter.eval_line('(+ 1 1)')
+        result = self.interpreter.eval_line('(+ 1 1)', 3)
         self.assertEquals('2', result)
         
         #some nesting
-        result = interpreter.eval_line('(+ 1 (- 1 2))')
+        result = self.interpreter.eval_line('(+ 1 (- 1 2))', 4)
         self.assertEquals('0', result)
         
         #comments
-        result = interpreter.eval_line('(+ 1 1) #hello there \'(1 2)')
+        result = self.interpreter.eval_line('(+ 1 1) #hello there \'(1 2)', 5)
         self.assertEquals('2', result)
-        result = interpreter.eval_line('#this should result empty')
+        result = self.interpreter.eval_line('#this should result empty', 6)
         self.assertEquals(None, result)
         
         #variables
-        result = interpreter.eval_line('a') #uninitiated variable
+        result = self.interpreter.eval_line('a', 7) #uninitiated variable
         self.assertEquals(None, result)
-        interpreter.variables['a'] = '1' #initiate variables illegally
-        result = interpreter.eval_line('a')
+        self.interpreter.variables['a'] = '1' #initiate variables illegally
+        result = self.interpreter.eval_line('a', 8)
         self.assertEquals('1', result)
-        result = interpreter.eval_line('(+ a 1) #a')
+        result = self.interpreter.eval_line('(+ a 1) #a', 9)
         self.assertEquals('2', result)
         
         #variables through "eq"
         
+    def tearDown(self):
+        del self.interpreter

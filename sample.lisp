@@ -1,4 +1,4 @@
-adding
+'addition
 (+ 1 1)
 (+ 1 2)
 (+ 1.0 1.0)
@@ -8,7 +8,7 @@ adding
 (+ -1.0 1.0) #comment
 (+ -1 1)
 
-subtracting
+'subtracting
 (- 1 1)
 (- 1 2)
 (- 1.0 1.0)
@@ -18,6 +18,6 @@ subtracting
 (- -1.0 1.0) #comment
 (- -1 1)
 
-nesting
+'nesting
 (+ (- 1 1) 1)
 var1

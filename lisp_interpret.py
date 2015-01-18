@@ -57,7 +57,7 @@ class Interpreter():
                 elif (not (i==" " or i=="'")) and sum == 0:
                     return (False, "Invalid entry outside of parentheses in line: " + str(counter))
             if sum>0:
-                return (False, "Mismatched bracket in line: " + str(counter))    
+                return (False, "Mismatched bracket in line: " + str(counter))
         else:
             if " " in l:
                 return (False, "You must have lists in parentheses, in line: " + str(counter))
@@ -68,8 +68,8 @@ class Interpreter():
         return (True, "")
     
     #Interpreting functions: single line, file
-    def eval_line(self, l):
-        verify = self.verify_line_syntax(l, 0)
+    def eval_line(self, l, line_num):
+        verify = self.verify_line_syntax(l, line_num)
         if not verify[0]:
             print verify[1]
             return None
@@ -77,24 +77,31 @@ class Interpreter():
         line_parsed = self.parse_line(l)
         result = None
         if len(line_parsed)>0:
-            result = self.eval(line_parsed[0], 0)
+            result = self.eval(line_parsed[0], line_num)
         return result
 
     def interpret(self, f):
         #read line by line, keeping track of line number
         #we assume file syntax is verified
-        line_count = 0
+        line_text = ""
+        line_count = 1
+        
+        #collects lines until brackets balance out
         for line in f:
-            line_count += 1
-            line_parsed = self.parse_line(line)
-            if verbose: print str(line_count)+":", line_parsed
-            result = self.eval(line_parsed, line_count)
-            if result==None:
-                break
-            elif result=="":
-                continue
+            #remove comments and extra spaces
+            if "#" in line:
+                line_text = line_text + " " + line[:line.index("#")]
             else:
-                yield result
+                line_text = line_text + " " + line
+            line_text = line_text.strip()
+            
+            #check brackets
+            if len(re.findall("[(]", line_text)) == len(re.findall("[)]", line_text)):
+                result = self.eval_line(line_text, line_count)
+                if result:
+                    yield result
+                    line_text = ""
+                    line_count += 1
     
     #Processing functions: The two most important functions: parsing and evaluating
     def parse_line(self, line):
@@ -140,7 +147,10 @@ class Interpreter():
             #add case for when item is a apostrophed object list
             if isinstance(item, list):
                 if item[0]=="'":
-                    return "'("+" ".join([correct_return(i) for i in item[1]]) + ")"
+                    if isinstance(item[1], list):
+                        return "'("+" ".join([correct_return(i) for i in item[1]]) + ")"
+                    else:
+                        return "'" + item[1]
                 else:
                     return "("+" ".join([correct_return(i) for i in item]) + ")"
             else:
@@ -155,7 +165,7 @@ class Interpreter():
             elif elements in self.variables:
                 return self.eval(self.variables[elements], counter)
             else:
-                print "Unknown value in line", str(counter)+":" , elements
+                if self.verbose: print "Unknown value in line", str(counter)+":" , elements
                 return None
         else:
             #returns if list is static symbol
@@ -171,12 +181,12 @@ class Interpreter():
                 if len(elements)==1:
                     return self.eval(elements[0], counter)
                 else:
-                    print "Undefined function in line", str(counter) + ":", elements[0]
+                    if self.verbose: print "Undefined function in line", str(counter) + ":", elements[0]
                     return None
             else:
                 params = elements[1:]
                 if self.validations[elements[0]] (params):
                     return self.eval(self.functions[elements[0]] (params), counter)
                 else:
-                    print "Validation failed in line", str(counter) + ":", elements[0]
+                    if self.verbose: print "Validation failed in line", str(counter) + ":", elements[0]
                     return None
