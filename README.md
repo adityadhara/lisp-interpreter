@@ -1,2 +1,1 @@
-# lisp-interpreter
-A lisp interpreter implemented in python
+A simple lisp interpreter. Honestly, I'm not following any spec, nor am I an expert in lisp. Just trying to implement some version of http://pythonpracticeprojects.com/lisp.html to learn about programming languages.
