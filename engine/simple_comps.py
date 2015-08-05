@@ -1,8 +1,8 @@
 from utils import is_symbol, is_atomic
 
+
 def equality_fn(obj, env):
     """
-
     finds equality between two arguments. If length of arguments is larger than 2,
     an exception is thrown. Otherwise, the following logic is followed:
 
@@ -83,9 +83,9 @@ def equality_fn(obj, env):
 
     return str(comparison_helper(obj.args[0], obj.args[1]))
 
+
 def quote_fn(obj, env):
     """
-
     Sets everything provided as a quoted symbol. The arguments are not evaluated. If args
     are already quoted symbols, they are simply returned
 
@@ -93,10 +93,10 @@ def quote_fn(obj, env):
     >>> dummy = dummyCls()
     >>> from utils import Environment
     >>> env = Environment()
-    >>> dummy.args = ['a', 'b']
+    >>> dummy.args = [['a', 'b']]
     >>> print quote_fn(dummy, env)
     ["'", ['a', 'b']]
-    >>> dummy.args = 'a'
+    >>> dummy.args = ['a']
     >>> print quote_fn(dummy, env)
     ["'", 'a']
     >>> dummy.args = ["'", ['a', 'b']]
@@ -111,7 +111,11 @@ def quote_fn(obj, env):
     :return:
     """
 
-    if isinstance(obj.args, list) and obj.args[0] is "'":
-        return obj.args
-    else:
+    if (len(obj.args) > 1):
+        if obj.args[0] == "'":
+            return obj.args
         return ["'", obj.args]
+    else:
+        if isinstance(obj.args[0], list) and obj.args[0] is "'":
+            return obj.args[0]
+        return ["'", obj.args[0]]

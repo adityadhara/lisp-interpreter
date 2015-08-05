@@ -1,5 +1,6 @@
 import re
 
+
 def count_brackets(line):
     """
     Returns the surplus of left-parentheses to right-parantheses of a given string.
@@ -22,6 +23,7 @@ def count_brackets(line):
     left_bracks = line.count('(')
     right_bracks = line.count(')')
     return left_bracks-right_bracks
+
 
 def read_file(file_path):
     """
@@ -74,6 +76,10 @@ def read_file(file_path):
     f = file(file_path)
 
     cur_line_count = 0
+    cur_line = ""
+    def mismatch_excp():
+        return Exception("Mismatched parentheses ending at line %r of %s - %r" %
+                         (cur_line_count, file_path, cur_line))
     statement_stack = [[]]
     n = 0
     for line in f.readlines():
@@ -89,8 +95,7 @@ def read_file(file_path):
 
         n += count_brackets(cur_line)
         if n < 0:
-            raise Exception("Mismatched parentheses ending at line %r of %s - %r" %
-                            (cur_line_count, file_path, cur_line))
+            raise mismatch_excp()
 
         # create parse friendly array
         items = re.split("([()'\s])", cur_line)
@@ -121,6 +126,9 @@ def read_file(file_path):
             statement_stack.append([])
             n = 0
 
+    if n > 0:
+        raise mismatch_excp()
+
 
 def printout(statement, out_stream):
     """
@@ -128,24 +136,28 @@ def printout(statement, out_stream):
 
     >>> import sys
     >>> out = sys.stdout
+    >>> printout(None, out)
     >>> printout('a', out)
     a
     >>> printout(['a'], out)
     (a)
     >>> printout(['a', 'b', 'c'], out)
-    (a, b, c)
+    (a b c)
     >>> printout(['a', 'b', ['c', 'd', 'e'], 'f'], out)
-    (a, b, (c, d, e), f)
+    (a b (c d e) f)
     >>> printout(["'", 'a'], out)
     'a
     >>> printout(["'", ['a', 'b', ['c', 'd', 'e'], 'f']], out)
-    '(a, b, (c, d, e), f)
+    '(a b (c d e) f)
     >>> printout(['a', 'b', ["'", ['c', 'd', 'e']], 'f', ['g', 'h']], out)
-    (a, b, '(c, d, e), f, (g, h))
+    (a b '(c d e) f (g h))
 
     :param statement: list of lists
     :return: Nothing
     """
+
+    if statement is None:
+        return
 
     def recursive_helper(l):
         if type(l) is not list:
@@ -161,7 +173,7 @@ def printout(statement, out_stream):
                 if first:
                     first = False
                 else:
-                    ret += ", "
+                    ret += " "
                 if type(item) is list:
                     ret += recursive_helper(item)
                 else:

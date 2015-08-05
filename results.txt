@@ -16,6 +16,18 @@
 -0.2
 -2.0
 -2.0
+'comparisons
+True
+False
+True
+False
+True
+False
+'quote
+'(a)
+'((1, a, b))
+'((+, 1, 2))
 'nesting
 1.0
+'atoms
 var1

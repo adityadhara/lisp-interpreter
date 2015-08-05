@@ -201,6 +201,7 @@ class ASTBase:
 
 from arithmetics import *
 from simple_comps import *
+from define import *
 
 ops = {
     '+': add_fn,
@@ -209,5 +210,5 @@ ops = {
     '/': divide_fn,
     'eq?': equality_fn,
     'quote': quote_fn,
-
+    'define': define_fn
 }
